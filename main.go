@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 	"os"
+	"sort"
 	"strconv"
 
 	goton "github.com/move-ton/ton-client-go"
@@ -178,11 +180,50 @@ func main() {
 		}
 
 		md.Contenders[n].AverageScore = float64(totalFF) / float64(sumCount)
+		md.Contenders[n].Reject = int64(len(res3.JurorsAgainst))
 	}
+
+	sort.Slice(md.Contenders, func(i, j int) bool {
+		return md.Contenders[i].AverageScore > md.Contenders[j].AverageScore
+	})
+
+	var (
+		intprev float64
+		place   int64
+	)
+
+	countJury := int64(len(md.Jurys))
+	place = 1
+	for _, valueC := range md.Contenders {
+
+		if math.IsNaN(valueC.AverageScore) || valueC.AverageScore == 0 || (valueC.Reject >= (countJury)+1) {
+			continue
+		}
+
+		if place == 1 {
+			intprev = valueC.AverageScore
+			valueC.Ranking = place
+			place++
+		} else {
+			if valueC.AverageScore < intprev {
+				intprev = valueC.AverageScore
+				valueC.Ranking = place
+				place++
+			} else {
+				valueC.Ranking = place - 1
+			}
+		}
+	}
+
+	sort.Slice(md.Contenders, func(i, j int) bool {
+		return md.Contenders[i].IDS < md.Contenders[j].IDS
+	})
 
 	if err := generateFile(md, mm); err != nil {
-
+		log.Fatal("Error generate file: ", err)
 	}
+
+	fmt.Println("Create file: ", md.TitleContext+".xlsx")
 }
 
 func generateFile(data *mainDats, mm map[string]votes) error {
@@ -243,6 +284,11 @@ func generateFile(data *mainDats, mm map[string]votes) error {
 	cell5R4.SetString("Reward")
 	cell5R4.SetStyle(st)
 
+	cell5R5 := row4.AddCell()
+	cell5R5.SetString("Reject")
+	cell5R5.SetStyle(st)
+
+	blueColor := false
 	for _, val := range data.Contenders {
 		id, _ := strconv.ParseInt(val.IDS, 0, 16)
 		row5 := sheet1.AddRow()
@@ -252,12 +298,20 @@ func generateFile(data *mainDats, mm map[string]votes) error {
 		cell1R5.GetStyle().Font.Size = 10
 		cell1R5.GetStyle().Alignment.Horizontal = "center"
 		cell1R5.GetStyle().Font.Bold = true
+		if blueColor {
+			cell1R5.GetStyle().Fill.FgColor = "E8F0FE"
+			cell1R5.GetStyle().Fill.PatternType = "solid"
+		}
 
 		cell2R5 := row5.AddCell()
 		cell2R5.SetHyperlink(linkToExplorer+val.Address, val.Address, "")
 		cell2R5.GetStyle().Font.Size = 10
 		cell2R5.GetStyle().Font.Color = "1155CC"
 		cell2R5.GetStyle().Font.Underline = true
+		if blueColor {
+			cell2R5.GetStyle().Fill.FgColor = "E8F0FE"
+			cell2R5.GetStyle().Fill.PatternType = "solid"
+		}
 
 		cell3R5 := row5.AddCell()
 		cell3R5.SetFloatWithFormat(val.AverageScore, "#0.00")
@@ -265,13 +319,21 @@ func generateFile(data *mainDats, mm map[string]votes) error {
 		cell3R5.GetStyle().Font.Size = 10
 		cell3R5.GetStyle().Alignment.Horizontal = "center"
 		cell3R5.GetStyle().Font.Bold = true
+		if blueColor {
+			cell3R5.GetStyle().Fill.FgColor = "E8F0FE"
+			cell3R5.GetStyle().Fill.PatternType = "solid"
+		}
 
 		cell4R5 := row5.AddCell()
 		cell4R5.GetStyle().Font.Name = "Arial"
 		cell4R5.GetStyle().Font.Size = 10
 		cell4R5.GetStyle().Font.Bold = true
-		cell4R5.SetInt(0)
+		cell4R5.SetInt64(val.Ranking)
 		cell4R5.GetStyle().Alignment.Horizontal = "center"
+		if blueColor {
+			cell4R5.GetStyle().Fill.FgColor = "E8F0FE"
+			cell4R5.GetStyle().Fill.PatternType = "solid"
+		}
 
 		cell5R9 := row5.AddCell()
 		cell5R9.GetStyle().Font.Name = "Arial"
@@ -279,7 +341,23 @@ func generateFile(data *mainDats, mm map[string]votes) error {
 		cell5R9.GetStyle().Font.Bold = true
 		cell5R9.SetFloatWithFormat(0, "#0.00")
 		cell5R9.GetStyle().Alignment.Horizontal = "center"
+		if blueColor {
+			cell5R9.GetStyle().Fill.FgColor = "E8F0FE"
+			cell5R9.GetStyle().Fill.PatternType = "solid"
+		}
 
+		cell6R9 := row5.AddCell()
+		cell6R9.SetInt64(val.Reject)
+		cell6R9.GetStyle().Font.Name = "Arial"
+		cell6R9.GetStyle().Font.Size = 10
+		cell6R9.GetStyle().Alignment.Horizontal = "center"
+		cell6R9.GetStyle().Font.Bold = true
+		if blueColor {
+			cell6R9.GetStyle().Fill.FgColor = "E8F0FE"
+			cell6R9.GetStyle().Fill.PatternType = "solid"
+		}
+
+		blueColor = !blueColor
 	}
 
 	stylefoo1 := xlsx.NewStyle()
@@ -310,6 +388,10 @@ func generateFile(data *mainDats, mm map[string]votes) error {
 	cell5R45 := row45.AddCell()
 	cell5R45.SetString(" ")
 	cell5R45.SetStyle(stylefoo1)
+
+	cell6R45 := row45.AddCell()
+	cell6R45.SetString(" ")
+	cell6R45.SetStyle(stylefoo1)
 
 	addEmptyString(sheet1, 2, 0)
 
@@ -353,6 +435,7 @@ func generateFile(data *mainDats, mm map[string]votes) error {
 	indJury := 1
 	var countVote, countFor, countAbstained, countAgainst int64
 	sumReward := 0.0
+	blueColor = false
 	for _, valJ := range data.Jurys {
 		sumVotes := mm[valJ.Address].JuryFor + mm[valJ.Address].JuryAbstained + mm[valJ.Address].JuryAgainst
 		if sumVotes > 0 {
@@ -363,11 +446,19 @@ func generateFile(data *mainDats, mm map[string]votes) error {
 			cell1R9.GetStyle().Font.Size = 10
 			cell1R9.GetStyle().Font.Bold = true
 			cell1R9.GetStyle().Alignment.Horizontal = "center"
+			if blueColor {
+				cell1R9.GetStyle().Fill.FgColor = "E8F0FE"
+				cell1R9.GetStyle().Fill.PatternType = "solid"
+			}
 
 			cell2R9 := row9.AddCell()
 			cell2R9.SetValue(valJ.Address)
 			cell2R9.GetStyle().Font.Name = "Arial"
 			cell2R9.GetStyle().Font.Size = 10
+			if blueColor {
+				cell2R9.GetStyle().Fill.FgColor = "E8F0FE"
+				cell2R9.GetStyle().Fill.PatternType = "solid"
+			}
 
 			cell3R9 := row9.AddCell()
 			cell3R9.SetValue(sumVotes)
@@ -375,6 +466,10 @@ func generateFile(data *mainDats, mm map[string]votes) error {
 			cell3R9.GetStyle().Font.Size = 10
 			cell3R9.GetStyle().Font.Bold = true
 			cell3R9.GetStyle().Alignment.Horizontal = "center"
+			if blueColor {
+				cell3R9.GetStyle().Fill.FgColor = "E8F0FE"
+				cell3R9.GetStyle().Fill.PatternType = "solid"
+			}
 
 			cell4R9 := row9.AddCell()
 			cell4R9.GetStyle().Font.Name = "Arial"
@@ -382,6 +477,10 @@ func generateFile(data *mainDats, mm map[string]votes) error {
 			cell4R9.GetStyle().Font.Bold = true
 			cell4R9.SetFloatWithFormat(0, "#0.00")
 			cell4R9.GetStyle().Alignment.Horizontal = "center"
+			if blueColor {
+				cell4R9.GetStyle().Fill.FgColor = "E8F0FE"
+				cell4R9.GetStyle().Fill.PatternType = "solid"
+			}
 
 			cell5R9 := row9.AddCell()
 			cell5R9.SetValue(mm[valJ.Address].JuryFor)
@@ -389,6 +488,10 @@ func generateFile(data *mainDats, mm map[string]votes) error {
 			cell5R9.GetStyle().Font.Size = 10
 			cell5R9.GetStyle().Font.Bold = true
 			cell5R9.GetStyle().Alignment.Horizontal = "center"
+			if blueColor {
+				cell5R9.GetStyle().Fill.FgColor = "E8F0FE"
+				cell5R9.GetStyle().Fill.PatternType = "solid"
+			}
 
 			cell6R9 := row9.AddCell()
 			cell6R9.SetValue(mm[valJ.Address].JuryAbstained)
@@ -396,6 +499,10 @@ func generateFile(data *mainDats, mm map[string]votes) error {
 			cell6R9.GetStyle().Font.Size = 10
 			cell6R9.GetStyle().Font.Bold = true
 			cell6R9.GetStyle().Alignment.Horizontal = "center"
+			if blueColor {
+				cell6R9.GetStyle().Fill.FgColor = "E8F0FE"
+				cell6R9.GetStyle().Fill.PatternType = "solid"
+			}
 
 			cell7R9 := row9.AddCell()
 			cell7R9.SetValue(mm[valJ.Address].JuryAgainst)
@@ -403,12 +510,18 @@ func generateFile(data *mainDats, mm map[string]votes) error {
 			cell7R9.GetStyle().Font.Size = 10
 			cell7R9.GetStyle().Font.Bold = true
 			cell7R9.GetStyle().Alignment.Horizontal = "center"
+			if blueColor {
+				cell7R9.GetStyle().Fill.FgColor = "E8F0FE"
+				cell7R9.GetStyle().Fill.PatternType = "solid"
+			}
 
 			indJury++
 			countVote += sumVotes
 			countFor += mm[valJ.Address].JuryFor
 			countAbstained += mm[valJ.Address].JuryAbstained
 			countAgainst += mm[valJ.Address].JuryAgainst
+
+			blueColor = !blueColor
 		}
 	}
 
@@ -478,6 +591,10 @@ func generateFile(data *mainDats, mm map[string]votes) error {
 
 	addEmptyString(sheet1, 2, 0)
 	addEmptyString(sheet1, 2, 0)
+
+	sheet2, _ := wb.AddSheet("Result")
+	sheet2.SetColWidth(1, 1, 70)
+	sheet2.SetColWidth(2, 6, 20)
 
 	err := wb.Save(data.TitleContext + ".xlsx")
 	if err != nil {

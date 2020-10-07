@@ -1,7 +1,8 @@
 package main
 
 const (
-	linkToExplorer = "https://ton.live/accounts?section=details&id="
+	linkToExplorer      = "https://ton.live/accounts?section=details&id="
+	linkToSubmissionGov = "https://gov.freeton.org/submission?proposalAddress=%s&submissionId=%d"
 )
 
 type mainDats struct {
@@ -16,6 +17,8 @@ type contenders struct {
 	Address      string
 	AverageScore float64
 	GovermentD   *goverment
+	Reject       int64
+	Ranking      int64
 }
 
 type jury struct {
@@ -50,6 +53,7 @@ type resContestInfo struct {
 	JuryKeys      []string `json:"juryKeys"`
 	Link          string   `json:"link"`
 	Title         string   `json:"title"`
+	Hash          string   `json:"hash"`
 }
 
 type req struct {
