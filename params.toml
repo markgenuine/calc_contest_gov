@@ -1,0 +1,4 @@
+# This is a TOML document
+title = "Reward for Contests"
+
+rewardsPlace = [200000,100000,50000,15000,15000,15000,15000,15000,15000,15000]

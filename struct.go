@@ -2,9 +2,12 @@ package main
 
 const (
 	linkToExplorer      = "https://ton.live/accounts?section=details&id="
-	linkToSubmissionGov = "https://gov.freeton.org/submission?proposalAddress=%s&submissionId=%d"
+	linkToSubmissionGov = "https://gov.freeton.org/submission?proposalAddress=%s&submissionId="
 )
 
+type TomlConfig struct {
+	Rewards []float64 `toml:"rewardsPlace"`
+}
 type mainDats struct {
 	TitleContext  string
 	LinkToContext string
@@ -13,7 +16,7 @@ type mainDats struct {
 }
 
 type contenders struct {
-	IDS          string
+	IDS          int64
 	Address      string
 	AverageScore float64
 	GovermentD   *goverment

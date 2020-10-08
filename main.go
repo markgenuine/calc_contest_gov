@@ -13,23 +13,24 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/BurntSushi/toml"
 	goton "github.com/move-ton/ton-client-go"
 	contracts "github.com/move-ton/ton-client-go/contracts"
 	"github.com/tealeg/xlsx/v3"
 )
 
 var (
-	networkChainID int
-	addressContest string
+	networkChainID, persentRewardJurys        int
+	addressContest, filePath, proposalAddress string
 )
 
 func init() {
 	flag.IntVar(&networkChainID, "chain", 0, "0-mainnet, 1-devnet")
 	flag.StringVar(&addressContest, "addr", "", "Address contract contest")
+	flag.StringVar(&filePath, "fpath", "", "Way to file with rewards")
+	flag.StringVar(&proposalAddress, "propaddr", "", "Proposal addres for make hyperlink submission id first table")
+	flag.IntVar(&persentRewardJurys, "prz", 5, "Persent rewards from sum for jurys")
 }
-
-//addressContest := "0:3a139813e5fd8427ec0700b85de063a0a574f54b8a942adcd55d5b60e72aa76b" //wiki
-// addressContest := "0:e06975f462608516a891c1a62704f75ad4bd71df02c39cc79259bd623f9da148" // DEFI
 
 func main() {
 
@@ -38,6 +39,15 @@ func main() {
 	nameChain := "main.ton.dev"
 	if addressContest == "" {
 		log.Fatal("Parameter addr is empty!")
+	}
+
+	if filePath == "" {
+		fmt.Println("Way to file with rewards is empty, file filled without rewards!")
+	} else {
+		var config TomlConfig
+		if _, err := toml.DecodeFile(filePath, &config); err != nil {
+			fmt.Println("Error read file with rewards: ", err, ", file filled without rewards")
+		}
 	}
 
 	if networkChainID != 0 {
@@ -93,7 +103,7 @@ func main() {
 	lenC := len(res1.Addresses)
 	for i := 0; i < lenC; i++ {
 		contDrs := &contenders{}
-		contDrs.IDS = res1.Ids[i]
+		contDrs.IDS, _ = strconv.ParseInt(res1.Ids[i], 0, 64)
 		contDrs.Address = res1.Addresses[i]
 
 		md.Contenders = append(md.Contenders, contDrs)
@@ -122,13 +132,8 @@ func main() {
 
 	mm := make(map[string]votes)
 	for n, val := range md.Contenders {
-		id, err := strconv.ParseInt(val.IDS, 0, 16)
-		if err != nil {
-			log.Fatalln("don't parse int from string id to int16: ", err)
-		}
 		pOLR.FunctionName = "getVotesPerJuror"
-
-		idReq := req{ID: id}
+		idReq := req{ID: val.IDS}
 		pOLR.Input = idReq
 		result, err = contracts.RunLocalResp(client.Request(contracts.RunLocal(pOLR)))
 		if err != nil {
@@ -288,16 +293,29 @@ func generateFile(data *mainDats, mm map[string]votes) error {
 	cell5R5.SetString("Reject")
 	cell5R5.SetStyle(st)
 
-	blueColor := false
+	blueColor, propAddressUse := false, false
+	nowLinkSub := ""
+	if proposalAddress != "" {
+		propAddressUse = true
+		nowLinkSub = fmt.Sprintf(linkToSubmissionGov, proposalAddress)
+	}
+
 	for _, val := range data.Contenders {
-		id, _ := strconv.ParseInt(val.IDS, 0, 16)
 		row5 := sheet1.AddRow()
 		cell1R5 := row5.AddCell()
-		cell1R5.SetValue(id)
 		cell1R5.GetStyle().Font.Name = "Arial"
 		cell1R5.GetStyle().Font.Size = 10
-		cell1R5.GetStyle().Alignment.Horizontal = "center"
 		cell1R5.GetStyle().Font.Bold = true
+		cell1R5.GetStyle().Alignment.Horizontal = "center"
+		if !propAddressUse {
+			cell1R5.SetValue(val.IDS)
+		} else {
+			isdS := strconv.FormatInt(val.IDS, 10)
+			cell1R5.SetHyperlink(nowLinkSub+isdS, isdS, "")
+			cell1R5.GetStyle().Font.Color = "1155CC"
+			cell1R5.GetStyle().Font.Underline = true
+		}
+
 		if blueColor {
 			cell1R5.GetStyle().Fill.FgColor = "E8F0FE"
 			cell1R5.GetStyle().Fill.PatternType = "solid"
@@ -339,6 +357,8 @@ func generateFile(data *mainDats, mm map[string]votes) error {
 		cell5R9.GetStyle().Font.Name = "Arial"
 		cell5R9.GetStyle().Font.Size = 10
 		cell5R9.GetStyle().Font.Bold = true
+
+		//Add rewards filling
 		cell5R9.SetFloatWithFormat(0, "#0.00")
 		cell5R9.GetStyle().Alignment.Horizontal = "center"
 		if blueColor {
