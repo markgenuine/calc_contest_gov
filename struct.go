@@ -3,30 +3,33 @@ package main
 const (
 	linkToExplorer      = "https://ton.live/accounts?section=details&id="
 	linkToSubmissionGov = "https://gov.freeton.org/submission?proposalAddress=%s&submissionId="
+	gas                 = 0.04
 )
 
 type TomlConfig struct {
-	Rewards []float64 `toml:"rewardsPlace"`
+	Rewards []int64 `toml:"rewardsPlace"`
 }
 type mainDats struct {
-	TitleContext  string
-	LinkToContext string
-	Contenders    []*contenders
-	Jurys         []*jury
+	TitleContext   string
+	LinkToContext  string
+	Contenders     []Contenders
+	Jurys          []Jury
+	RewardsSumCont int64
 }
-
-type contenders struct {
+type Contenders struct {
 	IDS          int64
 	Address      string
 	AverageScore float64
 	GovermentD   *goverment
 	Reject       int64
 	Ranking      int64
+	Reward       int64
 }
 
-type jury struct {
+type Jury struct {
 	Address   string
 	PublicKey string
+	Reward    float64
 }
 
 type goverment struct {

@@ -12,8 +12,8 @@ github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORN
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0 h1:45sCR5RtlFHMR4UwH9sdQ5TC8v0qDQCHnXt+kaKSTVE=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
-github.com/move-ton/ton-client-go v0.0.1 h1:4yXVmJIUIVyZR0iMJfkkNjYZlXu45JH3NCxDjbYZdXo=
-github.com/move-ton/ton-client-go v0.0.1/go.mod h1:uJMUuu08v5i2fp34wNbr9VwTx5st5QYXt5Lqp5nHbpI=
+github.com/move-ton/ton-client-go v0.0.4 h1:gcNRc06xPWQcJ1DexgBmwY/haKeY7AQWuxSAdKlxRHs=
+github.com/move-ton/ton-client-go v0.0.4/go.mod h1:uJMUuu08v5i2fp34wNbr9VwTx5st5QYXt5Lqp5nHbpI=
 github.com/peterbourgon/diskv v2.0.1+incompatible h1:UBdAOUP5p4RWqPBg048CAvpKN+vxiaj6gdUUzhl4XmI=
 github.com/peterbourgon/diskv v2.0.1+incompatible/go.mod h1:uqqh8zWWbv1HBMNONnaR/tNboyR3/BZd58JJSHlUSCU=
 github.com/rogpeppe/fastuuid v1.2.0 h1:Ppwyp6VYCF1nvBTXL3trRso7mXMlRrw9ooo375wvi2s=
