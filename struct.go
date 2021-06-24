@@ -1,7 +1,7 @@
 package main
 
 const (
-	linkToExplorer      = "https://ton.live/accounts?section=details&id="
+	linkToExplorer      = "https://ton.live/accounts/accountDetails?id="
 	linkToSubmissionGov = "https://gov.freeton.org/submission?proposalAddress=%s&submissionId="
 	gas                 = 0.04
 )
